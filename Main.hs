@@ -2,16 +2,18 @@ module Main where
 
 import           Control.Monad.IO.Class         ( liftIO )
 import           System.Console.Haskeline
-import           ParseInput (lambdaInteract)
-import Util
+import           ParseInput                     ( lambdaInteract )
+import           Util
+import Control.Monad
 
 
 main :: IO ()
 main = do
     putStr "\ESC[2J"
     putStrLn $ unlines
-        [ 
-          mkBold "KIT programming paradigms Lambda Calculus Interpreter"
+        [ mkBold "KIT programming paradigms"
+        , mkBold "Lambda Calculus Interpreter"
+        , "(c) dnlkrgr.com"
         , ""
         , mkItalic "Usage:"
         , "- enter lambda expressions and let them be evaluated"
@@ -20,9 +22,9 @@ main = do
         , ""
         , mkItalic "Example lambda expressions:"
         , "number:      3"
-        , "variable:    x"
-        , "lambda:      /x. x"
-        , "application: $ f g, $ ($ a b) c"
+        , "variable:    x, y, z"
+        , "lambda:      /x. x, /x. /y. x"
+        , "application: $ f g, $ ($ a b) c, $ f (/x.x)"
         ]
     runInputT defaultSettings loop
   where
@@ -34,5 +36,5 @@ main = do
             Just "quit" -> return ()
             Just input  -> do
                 output <- liftIO $ lambdaInteract input
-                outputStrLn output
+                mapM_ outputStrLn output
                 loop

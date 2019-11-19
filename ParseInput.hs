@@ -1,4 +1,7 @@
-module ParseInput (lambdaInteract) where
+module ParseInput
+    ( lambdaInteract
+    )
+where
 
 import           Data.Char
 import           Data.Void
@@ -6,15 +9,18 @@ import           Text.Megaparsec
 import           Text.Megaparsec.Char
 import qualified Text.Megaparsec.Char.Lexer    as L
 import           Types
-import Lambda
+import           Lambda
+import           Control.Monad.Trans.State.Strict
+                                               as TSS
 
 type Parser = Parsec Void String
 
-lambdaInteract :: String -> IO String
-lambdaInteract input = do
-    case parseLambdaExpr input of
-        Left err -> pure $ "Parse error at offset: " ++ show (pstateOffset $ bundlePosState err)
-        Right expr -> show . eval <$> runRename expr
+lambdaInteract :: String -> IO [String]
+lambdaInteract input = case parseLambdaExpr input of
+    Left err -> pure ["Parse error at offset: " ++ show
+        (pstateOffset $ bundlePosState err)]
+    Right expr ->
+        (\(t, m) -> reverse . map (showTerm m) . (\(a,s) -> (:) a . tail . init $ s) $ runState (eval t) [t]) <$> runRename expr
 
 sc :: Parser ()
 sc = L.space space1 lineCmnt blockCmnt
@@ -63,8 +69,7 @@ application = do
     pure $ App t1 t2
 
 term :: Parser Term
-term =
-    try number <|> try variable <|> lambda <|> application
+term = try number <|> try variable <|> lambda <|> application
 
 parseLambdaExpr :: String -> Either (ParseErrorBundle String Void) Term
 parseLambdaExpr = parse term ""

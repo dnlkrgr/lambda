@@ -1,7 +1,9 @@
 module Types where
 
-import           Data.Unique
-import Util
+import           Data.Unique (Unique, hashUnique)
+import           Util
+import           Data.Map                      as M (Map, lookup)
+import Data.Maybe (fromMaybe)
 
 data Term = Num Integer      -- number
           | Var String       -- variable
@@ -16,13 +18,12 @@ data Term' = Num' Integer
            | Lam' Unique Term'
            | App' Term' Term'
 
-instance Show Term' where
-    show (Num' n) = mkItalic (show n)
-    show (Var' i) = showUnique i
-    show (Lam' i body) =
-        mkBold "(" ++ "\\" ++ showUnique i ++ ". " ++ show body ++ mkBold ")"
-    show (App' t1 t2) = show t1 ++ " " ++ show t2
+showTerm :: M.Map Unique String -> Term' -> String
+showTerm m (Num' n      ) = mkItalic (show n)
+showTerm m (Var' i      ) = showUnique m i
+showTerm m (Lam' i  body) = mkBold "(" ++ "\\" ++ showUnique m i ++ " . " ++ showTerm m body ++ mkBold ")"
+showTerm m (App' t1 t2  ) = mkBold "$ " ++ showTerm m t1 ++ " " ++ showTerm m t2
 
-showUnique :: Unique -> String
-showUnique u = colorUnique n . (: []) . (['a' .. 'z'] !!) . (`mod` 26) $ n
-        where n = hashUnique u
+showUnique :: M.Map Unique String -> Unique -> String
+showUnique m u = colorUnique n . fromMaybe "arst" $ M.lookup u m
+    where n = hashUnique u

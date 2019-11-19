@@ -16,8 +16,9 @@ You can enter lambda expressions which are then evaluated to normal form.
 
 ## Syntax for lambda expressions:
 
-`t := n | x | /x. t | t1 t2 | (t1) (t2)`
+`t := n | x | /x. t | $ t1 t2 | $ (t1) (t2)`
 
 whereby:
   * n is an integer
   * x is an identifier
+  * the $-sign is there to make it easier to parse function application

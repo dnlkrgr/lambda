@@ -4,23 +4,22 @@ import           Control.Monad.IO.Class         ( liftIO )
 import           System.Console.Haskeline
 import           ParseInput                     ( lambdaInteract )
 import           Util
-import Control.Monad
 
 
 main :: IO ()
 main = do
     putStr "\ESC[2J"
     putStrLn $ unlines
-        [ mkBold "KIT programming paradigms"
-        , mkBold "Lambda Calculus Interpreter"
-        , "(c) dnlkrgr.com"
+        [ mkBold "KIT programming paradigms" Nothing
+        , mkBold "Lambda Calculus Interpreter" Nothing
+        , " © dnlkrgr.com"
         , ""
-        , mkItalic "Usage:"
+        , mkItalic "Usage:" Nothing
         , "- enter lambda expressions and let them be evaluated"
         , "  by hitting enter"
         , "- quit by writing \"quit\"."
         , ""
-        , mkItalic "Example lambda expressions:"
+        , mkItalic "Example lambda expressions:" Nothing
         , "number:      3"
         , "variable:    x, y, z"
         , "lambda:      /x. x, /x. /y. x"
@@ -30,7 +29,7 @@ main = do
   where
     loop :: InputT IO ()
     loop = do
-        minput <- getInputLine (mkBold "λ> ")
+        minput <- getInputLine (mkBold "λ> " Nothing)
         case minput of
             Nothing     -> return ()
             Just "quit" -> return ()

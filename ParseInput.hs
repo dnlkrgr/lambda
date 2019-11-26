@@ -3,7 +3,6 @@ module ParseInput
     )
 where
 
-import           Data.Char
 import           Data.Void
 import           Text.Megaparsec
 import           Text.Megaparsec.Char
@@ -12,15 +11,32 @@ import           Types
 import           Lambda
 import           Control.Monad.Trans.State.Strict
                                                as TSS
+import Control.Monad.Reader
 
 type Parser = Parsec Void String
 
 lambdaInteract :: String -> IO [String]
 lambdaInteract input = case parseLambdaExpr input of
-    Left err -> pure ["Parse error at offset: " ++ show
-        (pstateOffset $ bundlePosState err)]
+    Left _ -> pure [ "Parse error, please check if you're missing $-signs." ]
     Right expr ->
-        (\(t, m) -> reverse . map (showTerm m) . (\(a,s) -> (:) a . tail . init $ s) $ runState (eval t) [t]) <$> runRename expr
+        (\(t, m) ->
+                reverse
+                    . map (\temp -> "=> " ++ runReader (showTerm m temp) Nothing)
+                    . (\(normalForm, s) -> (:) normalForm . safeTail . init $ s)
+                    $ runState (eval t) [t]
+            )
+            <$> runRename expr
+
+--prettyPrint :: String -> IO String
+--prettyPrint input = case parseLambdaExpr input of
+--    Left err -> pure $ "Parse error at offset: " ++ show
+--        (pstateOffset $ bundlePosState err)
+--    Right expr -> (\(t, m) -> showTerm m t) <$> runRename expr
+
+
+safeTail :: [a] -> [a]
+safeTail []       = []
+safeTail (_ : xs) = xs
 
 sc :: Parser ()
 sc = L.space space1 lineCmnt blockCmnt
@@ -37,9 +53,6 @@ symbol = L.symbol sc
 parens :: Parser a -> Parser a
 parens = between (symbol "(") (symbol ")")
 
-brackets :: Parser a -> Parser a
-brackets = between (symbol "{") (symbol "}")
-
 integer :: Parser Integer
 integer = lexeme L.decimal
 
@@ -55,15 +68,15 @@ variable = Var <$> identifier
 
 lambda :: Parser Term
 lambda = do
-    symbol "/"
+    _ <- symbol "/"
     x <- identifier
-    symbol "."
-    t <- term
+    _ <- symbol "."
+    t <- try term <|> parens term
     pure $ Lam x t
 
 application :: Parser Term
 application = do
-    symbol "$"
+    _  <- symbol "$"
     t1 <- try term <|> parens term
     t2 <- try term <|> parens term
     pure $ App t1 t2

@@ -5,7 +5,7 @@ module Lambda
 where
 
 import           Control.Monad.IO.Class         ( liftIO )
-import qualified Control.Monad.State as S
+import qualified Control.Monad.State           as S
 import           Control.Monad.Reader           ( ReaderT
                                                 , runReaderT
                                                 , local
@@ -13,12 +13,11 @@ import           Control.Monad.Reader           ( ReaderT
                                                 )
 import           Data.Unique                    ( Unique
                                                 , newUnique
-                                                , hashUnique
                                                 )
 import           Types
 import qualified Data.Map                      as M
-import           Data.Either
-import qualified Control.Monad.Trans.State.Strict as TSS
+import qualified Control.Monad.Trans.State.Strict
+                                               as TSS
 
 
 -- | evaluates a lambda term to normal form
@@ -28,10 +27,9 @@ eval (App' f a) = do
     t <- eval f
     case t of
         Lam' x body -> do
-            TSS.modify $ \s -> subst body x a : s
+            TSS.modify $ \s -> subst body x a : Redex t a : s
             eval (subst body x a)
-        g           -> do
-            pure $ App' g a
+        g -> pure $ App' g a
 eval t = pure t
 
 -- | performs substitution in lambda terms
@@ -43,6 +41,7 @@ subst (App' t1 t2) target newValue =
     App' (subst t1 target newValue) (subst t2 target newValue)
 subst (Lam' ident term) target newValue =
     Lam' ident (subst term target newValue)
+subst t _ _ = t
 
 -- | rename turns a lambda term with strings for variable identifiers into 
 -- our internal representation. It needs to run in IO because of Unique, 
@@ -55,7 +54,10 @@ runRename t = runReaderT (S.runStateT (rename t) M.empty) M.empty
 -- Reader monad keeping track of the current scope is very easy.
 rename
     :: Term
-    -> S.StateT (M.Map Unique String) (ReaderT (M.Map String Unique) IO) Term'
+    -> S.StateT
+           (M.Map Unique String)
+           (ReaderT (M.Map String Unique) IO)
+           Term'
 rename (App t1 t2   ) = App' <$> rename t1 <*> rename t2
 rename (Num n       ) = return $ Num' n
 rename (Var oldIdent) = do
